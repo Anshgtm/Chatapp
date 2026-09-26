@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs"
 import userModel from "../model/user.model.js";
 import { generateToken } from "../lib/token.utils.js";
+import cloudinary from "../lib/cloudinary.js";
 export const signup = async(req,res)=>{
     const {Fullname,email,password}  = req.body;
     if(!Fullname || !email || !password){
@@ -58,7 +59,7 @@ export const login = async(req,res)=>{
 
     res.status(200).json({
       _id: user._id,
-      FullName: userModel.Fullname,
+      FullName: user.Fullname,
       email: user.email,
       profilePic: user.profilePic,
     });
@@ -69,9 +70,46 @@ export const login = async(req,res)=>{
 
     
 }
-export const logout = async()=>{
+export const logout = async(req,res)=>{
+    try{
+    res.cookie("jwt","",{
+        maxAge:0,
+    })
+    res.status(200).json({
+        message:"Logged out successfully"
+    })
+}
+catch(error){
+    res.status(500).json({
+        message:"Error occurred while logging out"
+    })
+
+}
     
 }
-export const updateuser = async()=>{
+export const updateuser = async(req,res)=>{
+    try{
+    const {profilePic} = req.body;
+    const userId = req.user._id;
+    if(!profilePic){
+        res.status(400).json({
+            message:"Profile picture is required"
+        })
+    }
+    const updatedprofile =  await cloudinary.uploader.upload(profilePic)
+    const updateduser =  await userModel.findByIdAndUpdate(userId,{
+        profilePic:updatedprofile.secure_url
+    },{new:true})
+    res.status(200).json({
+        message:"Profile picture updated successfully",
+        profilePic:updateduser.profilePic
+    })
+}
+catch(error){
+    res.status(500).json({
+        message:"Error occurred while updating profile picture"
+    })
+
+}
     
 }
